@@ -1,9 +1,25 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 void main() {
-  runApp(const MainApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => PacienteData(),
+      child: const MainApp(),
+    ),
+  );
+}
+
+class PacienteData extends ChangeNotifier {
+  List<List<dynamic>> tabla = [
+    [3200, 48, DateTime(2023, 10, 15)],
+    [3700, 50, DateTime(2023, 10, 22)],
+    [4500, 57, DateTime(2023, 10, 29)],
+    [6000, 61, DateTime(2023, 11, 5)],
+    [7100, 64, DateTime(2023, 11, 12)]
+  ];
 }
 
 class MainApp extends StatelessWidget {
@@ -11,6 +27,7 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    var pacienteData = Provider.of<PacienteData>(context);
     return MaterialApp(
       home: Builder(builder: (context) {
         return Scaffold(
@@ -53,7 +70,8 @@ class MainApp extends StatelessWidget {
                       // Change to a different view for 'Ingreso Padre'
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (context) => const IngresoPadreView(),
+                          builder: (context) =>
+                              TablaPaciente(pacienteData.tabla, origen: "azul"),
                         ),
                       );
                     },
@@ -86,6 +104,7 @@ class PacientesView extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Pacientes'),
+        backgroundColor: Colors.green,
       ),
       body: ListView(
         children: [
@@ -139,7 +158,13 @@ class PacientesView extends StatelessWidget {
                   style: TextStyle(fontSize: 15),
                 ),
                 onTap: () {
-                  // Handle onTap for Paciente 1
+                  // snack bar diciendo que no hay datos
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('No hay datos para este paciente'),
+                      duration: Duration(seconds: 3),
+                    ),
+                  );
                 },
               ),
             ),
@@ -164,29 +189,19 @@ class PacientesView extends StatelessWidget {
                   style: TextStyle(fontSize: 15),
                 ),
                 onTap: () {
-                  // Handle onTap for Paciente 1
+                  // snack bar diciendo que no hay datos
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('No hay datos para este paciente'),
+                      duration: Duration(seconds: 3),
+                    ),
+                  );
                 },
               ),
             ),
           ),
           // ... (tarjetas similares para otros pacientes)
         ],
-      ),
-    );
-  }
-}
-
-class IngresoPadreView extends StatelessWidget {
-  const IngresoPadreView({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Ingreso Padre'),
-      ),
-      body: const Center(
-        child: Text('This is the Ingreso Padre View'),
       ),
     );
   }
@@ -204,9 +219,6 @@ class _EditarPacienteState extends State<EditarPaciente> {
   TextEditingController weightController = TextEditingController();
   TextEditingController heightController = TextEditingController();
 
-  // Arreglo que contendrá arreglos, donde cada uno de estos arreglos tendrá información de peso, estatura y fecha
-  List<List<dynamic>> tabla = [];
-
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -223,6 +235,7 @@ class _EditarPacienteState extends State<EditarPaciente> {
 
   @override
   Widget build(BuildContext context) {
+    var pacienteData = Provider.of<PacienteData>(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Editar Paciente'),
@@ -247,7 +260,7 @@ class _EditarPacienteState extends State<EditarPaciente> {
             Row(
               children: [
                 Text(
-                  'Fecha: ${selectedDate.toLocal()}'.split(' ')[0],
+                  'Fecha: ${DateFormat('dd/MM/yyyy').format(selectedDate)}',
                   style: const TextStyle(fontSize: 18),
                 ),
                 const SizedBox(width: 20),
@@ -264,40 +277,28 @@ class _EditarPacienteState extends State<EditarPaciente> {
                 minimumSize: MaterialStateProperty.all(const Size(210, 50)),
               ),
               onPressed: () {
-                // Crea un arreglo con los datos ingresados
                 var datos = [
                   weightController.text,
                   heightController.text,
                   selectedDate.toLocal()
                 ];
-                // Agregame el arreglo de datos al arreglo de arreglos
-                tabla.add(datos);
-                // Imprimeme la tabla
-                print(tabla);
-                // Revisar que ningun texto este vacio y si lo esta, mostrar un snackbar
-                if (weightController.text.isEmpty ||
-                    heightController.text.isEmpty) {
+
+                if (_isValidData(datos)) {
+                  pacienteData.tabla.add(datos);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text(
-                        'Por favor ingrese todos los datos',
-                      ),
-                      //time
+                      content: Text('Dato ingresado correctamente'),
                       duration: Duration(seconds: 3),
                     ),
                   );
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text(
-                        'Dato ingresado correctamente',
-                      ),
-                      //time
+                      content: Text('Por favor ingrese todos los datos'),
                       duration: Duration(seconds: 3),
                     ),
                   );
                 }
-                //snackbar que indique que se ingreso el dato
               },
               child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -305,10 +306,9 @@ class _EditarPacienteState extends State<EditarPaciente> {
                   Icon(
                     Icons.add,
                     size: 30,
-                    color: Colors
-                        .white, // Puedes ajustar el color según tus preferencias
+                    color: Colors.white,
                   ),
-                  SizedBox(width: 10), // Espacio entre el icono y el texto
+                  SizedBox(width: 10),
                   Text(
                     'Ingresar Nuevo Dato',
                     style: TextStyle(
@@ -321,34 +321,58 @@ class _EditarPacienteState extends State<EditarPaciente> {
             ),
             const SizedBox(height: 20),
             ElevatedButton(
+              style: ButtonStyle(
+                backgroundColor: MaterialStateProperty.all(Colors.blue),
+                minimumSize: MaterialStateProperty.all(const Size(210, 50)),
+              ),
               onPressed: () {
-                // Navegar a la pantalla de GraficoPaciente
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => TablaPaciente(tabla),
-                  ),
-                );
+                //revisar si existe un dato antes de mover. si no hay datos avisar con un snack bar
+                if (pacienteData.tabla.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('No hay datos para este paciente'),
+                      duration: Duration(seconds: 3),
+                    ),
+                  );
+                } else {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          TablaPaciente(pacienteData.tabla, origen: "verde"),
+                    ),
+                  );
+                }
               },
-              child: const Text('Continuar'),
+              child: const Text('Ver Datos', style: TextStyle(fontSize: 20)),
             ),
           ],
         ),
       ),
     );
   }
+
+  bool _isValidData(List<dynamic> data) {
+    return data
+        .every((element) => element != null && element.toString().isNotEmpty);
+  }
 }
 
 class TablaPaciente extends StatelessWidget {
-  final List<List<dynamic>> data;
-
-  const TablaPaciente(this.data, {Key? key}) : super(key: key);
+  final String origen;
+  const TablaPaciente(List<List> tabla, {Key? key, required this.origen})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    var pacienteData = Provider.of<PacienteData>(context);
+    List<List<dynamic>> sortedData = List.from(pacienteData.tabla);
+    //define fecha como hace 2 semanas
+    sortedData.sort((a, b) => (a[2] as DateTime).compareTo(b[2] as DateTime));
+
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.green,
+        backgroundColor: origen == "verde" ? Colors.green : Colors.blue,
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -373,18 +397,28 @@ class TablaPaciente extends StatelessWidget {
                 DataColumn(label: Text('Peso (g)')),
                 DataColumn(label: Text('Estatura (cm)')),
               ],
-              source: _DataSource(data),
+              source: _DataSource(sortedData),
               rowsPerPage: 7, // Puedes ajustar la cantidad de filas por página
             ),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => GraficoPaciente(data),
-                  ),
-                );
+                //revisar si hay datos antes de mover. si no hay datos avisar con un snack bar
+                if (pacienteData.tabla.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('No hay datos para este paciente'),
+                      duration: Duration(seconds: 3),
+                    ),
+                  );
+                } else {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => GraficoPaciente(sortedData),
+                    ),
+                  );
+                }
               },
               child: const Text('Ver Gráfico'),
             ),
@@ -395,13 +429,55 @@ class TablaPaciente extends StatelessWidget {
   }
 }
 
-class GraficoPaciente extends StatelessWidget {
+class GraficoPaciente extends StatefulWidget {
   final List<List<dynamic>> data;
 
-  const GraficoPaciente(this.data);
+  const GraficoPaciente(this.data, {super.key});
+
+  @override
+  // ignore: library_private_types_in_public_api
+  _GraficoPacienteState createState() => _GraficoPacienteState();
+}
+
+class _GraficoPacienteState extends State<GraficoPaciente> {
+  bool comparacionActivada = false;
+  final List<List<dynamic>> datosComparacion = [
+    [3200, 50, DateTime(2023, 6, 19)],
+    [4000, 54, DateTime(2023, 7, 19)],
+    [4800, 57, DateTime(2023, 8, 19)],
+    [5600, 60, DateTime(2023, 9, 19)],
+    [6400, 63, DateTime(2023, 10, 19)],
+    [7200, 66, DateTime(2023, 11, 19)],
+  ];
 
   @override
   Widget build(BuildContext context) {
+    // Obtener el valor mínimo y máximo de los datos
+    double valorMinimoPeso = double.infinity;
+    double valorMinimoEstatura = double.infinity;
+    double valorMaximoPeso = -double.infinity;
+    double valorMaximoEstatura = -double.infinity;
+
+    DateTime fechaDeNacimiento = DateTime(2023, 10, 15);
+
+    List<List<dynamic>> datosActuales = widget.data;
+
+    for (var entry in datosComparacion) {
+      double primerValor = double.tryParse(entry[0].toString()) ?? 0.0;
+      valorMinimoPeso =
+          primerValor < valorMinimoPeso ? primerValor : valorMinimoPeso;
+      valorMaximoPeso =
+          primerValor > valorMaximoPeso ? primerValor : valorMaximoPeso;
+
+      double segundoValor = double.tryParse(entry[1].toString()) ?? 0.0;
+      valorMinimoEstatura = segundoValor < valorMinimoEstatura
+          ? segundoValor
+          : valorMinimoEstatura;
+      valorMaximoEstatura = segundoValor > valorMaximoEstatura
+          ? segundoValor
+          : valorMaximoEstatura;
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Gráfico del Paciente'),
@@ -409,54 +485,212 @@ class GraficoPaciente extends StatelessWidget {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: LineChart(
-          LineChartData(
-            gridData: FlGridData(show: false),
-            titlesData: FlTitlesData(
-              leftTitles: SideTitles(showTitles: true),
-              bottomTitles: SideTitles(
-                showTitles: true,
-                getTitles: (value) {
-                  final index = value.toInt();
-                  if (index >= 0 && index < data.length) {
-                    final date =
-                        DateFormat('dd/MM').format(data[index][2] as DateTime);
-                    return date;
-                  }
-                  return '';
-                },
-              ),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text('Comparar con datos preestablecidos'),
+                Switch(
+                  value: comparacionActivada,
+                  onChanged: (value) {
+                    setState(() {
+                      comparacionActivada = value;
+                    });
+                  },
+                ),
+              ],
             ),
-            borderData: FlBorderData(
-              show: true,
-              border: Border.all(
-                color: const Color(0xff37434d),
-                width: 1,
-              ),
-            ),
-            minX: 0,
-            maxX: data.length.toDouble() - 1,
-            minY: 0,
-            maxY: 5000, // Ajusta el valor máximo según tus datos
-            lineBarsData: [
-              LineChartBarData(
-                spots: data
-                    .asMap()
-                    .entries
-                    .map(
-                      (entry) => FlSpot(
-                        entry.key.toDouble(),
-                        entry.value[0] as double,
+            Expanded(
+              child: LineChart(
+                LineChartData(
+                  gridData: FlGridData(show: true),
+                  titlesData: FlTitlesData(
+                    leftTitles: SideTitles(
+                      showTitles: true,
+                      interval: (valorMaximoPeso - valorMinimoPeso),
+                    ),
+                    rightTitles: SideTitles(showTitles: false),
+                    bottomTitles: SideTitles(
+                      showTitles: true,
+                      interval: (datosActuales.length / 7).ceil().toDouble(),
+                      getTitles: (value) {
+                        final index = value.round();
+                        if (index >= 0 && index < datosActuales.length) {
+                          final fechaDato = datosActuales[index][2] as DateTime;
+                          int edadEnSemanas = ((fechaDato
+                                      .difference(fechaDeNacimiento)
+                                      .inDays) /
+                                  7)
+                              .floor();
+                          return '$edadEnSemanas';
+                        }
+                        return '';
+                      },
+                    ),
+                    topTitles: SideTitles(
+                        showTitles: true,
+                        interval: datosActuales.length.toDouble() / 2,
+                        getTitles: (value) {
+                          final index = value.round();
+                          if (index == 1) {
+                            return '';
+                          }
+                          if (index > 1) {
+                            return 'Peso (g) // Edad (semanas)';
+                          }
+                          return '';
+                        }),
+                  ),
+                  borderData: FlBorderData(
+                    show: true,
+                    border: Border.all(
+                      color: const Color(0xff37434d),
+                      width: 1,
+                    ),
+                  ),
+                  minX: 0,
+                  maxX: datosActuales.length.toDouble() - 1,
+                  minY: valorMinimoPeso -
+                      1000, // Resta 1000 para espacio adicional en minY
+                  maxY: valorMaximoPeso +
+                      1000, // Añade 1000 para espacio adicional en maxY
+                  lineBarsData: [
+                    // Serie de datos actuales
+                    LineChartBarData(
+                      spots: datosActuales
+                          .asMap()
+                          .entries
+                          .map(
+                            (entry) => FlSpot(
+                              entry.key.toDouble(),
+                              double.tryParse(entry.value[0].toString()) ?? 0.0,
+                            ),
+                          )
+                          .toList(),
+                      isCurved: true,
+                      colors: const [Colors.blue],
+                      dotData: FlDotData(show: true),
+                      belowBarData: BarAreaData(show: false),
+                    ),
+                    // Serie de datos de comparación
+                    if (comparacionActivada)
+                      LineChartBarData(
+                        spots: datosComparacion
+                            .asMap()
+                            .entries
+                            .map(
+                              (entry) => FlSpot(
+                                entry.key.toDouble(),
+                                double.tryParse(entry.value[0].toString()) ??
+                                    0.0,
+                              ),
+                            )
+                            .toList(),
+                        isCurved: true,
+                        colors: const [Colors.red], // Puedes cambiar el color
+                        dotData: FlDotData(show: true),
+                        belowBarData: BarAreaData(show: false),
                       ),
-                    )
-                    .toList(),
-                isCurved: true,
-                colors: const [Colors.blue],
-                dotData: FlDotData(show: false),
-                belowBarData: BarAreaData(show: false),
+                  ],
+                ),
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 16), // Espacio entre los gráficos
+            Expanded(
+              child: LineChart(
+                LineChartData(
+                  gridData: FlGridData(show: true),
+                  titlesData: FlTitlesData(
+                    leftTitles: SideTitles(
+                      showTitles: true,
+                      interval: (valorMaximoEstatura - valorMinimoEstatura),
+                    ),
+                    rightTitles: SideTitles(showTitles: false),
+                    bottomTitles: SideTitles(
+                      showTitles: true,
+                      interval: (datosActuales.length / 7).ceil().toDouble(),
+                      getTitles: (value) {
+                        final index = value.round();
+                        if (index >= 0 && index < datosActuales.length) {
+                          final fechaDato = datosActuales[index][2] as DateTime;
+                          int edadEnSemanas = ((fechaDato
+                                      .difference(fechaDeNacimiento)
+                                      .inDays) /
+                                  7)
+                              .floor();
+                          return '$edadEnSemanas';
+                        }
+                        return '';
+                      },
+                    ),
+                    topTitles: SideTitles(
+                        showTitles: true,
+                        interval: datosActuales.length.toDouble() / 2,
+                        getTitles: (value) {
+                          final index = value.round();
+                          if (index == 1) {
+                            return '';
+                          }
+                          if (index > 1) {
+                            return 'Estatura (cm) // Edad (semanas)';
+                          }
+                          return '';
+                        }),
+                  ),
+                  borderData: FlBorderData(
+                    show: true,
+                    border: Border.all(
+                      color: const Color(0xff37434d),
+                      width: 1,
+                    ),
+                  ),
+                  minX: 0,
+                  maxX: datosActuales.length.toDouble() - 1,
+                  minY: valorMinimoEstatura -
+                      10, // Resta 1000 para espacio adicional en minY
+                  maxY: valorMaximoEstatura +
+                      10, // Añade 1000 para espacio adicional en maxY
+                  lineBarsData: [
+                    LineChartBarData(
+                      spots: datosActuales
+                          .asMap()
+                          .entries
+                          .map(
+                            (entry) => FlSpot(
+                              entry.key.toDouble(),
+                              double.tryParse(entry.value[1].toString()) ?? 0.0,
+                            ),
+                          )
+                          .toList(),
+                      isCurved: true,
+                      colors: const [Colors.blue],
+                      dotData: FlDotData(show: true),
+                      belowBarData: BarAreaData(show: false),
+                    ),
+                    if (comparacionActivada)
+                      LineChartBarData(
+                        spots: datosComparacion
+                            .asMap()
+                            .entries
+                            .map(
+                              (entry) => FlSpot(
+                                entry.key.toDouble(),
+                                double.tryParse(entry.value[1].toString()) ??
+                                    0.0,
+                              ),
+                            )
+                            .toList(),
+                        isCurved: true,
+                        colors: const [Colors.red], // Puedes cambiar el color
+                        dotData: FlDotData(show: true),
+                        belowBarData: BarAreaData(show: false),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
